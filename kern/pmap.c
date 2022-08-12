@@ -272,6 +272,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	for(int32_t i = 0; i < NCPU; i++){
+		int cur_kstacktop = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, cur_kstacktop - KSTKSIZE, KSTKSIZE,
+		PADDR(&percpu_kstacks[i]), PTE_W);
+	}
 
 }
 
@@ -312,25 +317,26 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	page_free_list = NULL;
-
-	//num_alloc：在extmem区域已经被占用的页的个数
-	int num_alloc = ((uint32_t)boot_alloc(0) - KERNBASE) / PGSIZE;
-	//num_iohole：在io hole区域占用的页数
-	int num_iohole = 96;
-
-	for(i=0; i<npages; i++)
-	{
-		if(i==0)
-		{
+	for (i = 0; i < npages; i++) {
+		uint32_t npages_extmem_used = ((uint32_t)boot_alloc(0) - KERNBASE) / PGSIZE;
+		uint32_t npages_io_hole = (EXTPHYSMEM - IOPHYSMEM) / PGSIZE;
+		extern unsigned char mpentry_start[], mpentry_end[];
+		uint32_t size = ROUNDUP((uint32_t)(mpentry_end - mpentry_start), PGSIZE);
+		uint32_t npages_mpentry = MPENTRY_PADDR / PGSIZE;
+		if(!i){
 			pages[i].pp_ref = 1;
-		}    
-		else if(i >= npages_basemem && i < npages_basemem + num_iohole + num_alloc)
-		{
-			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
 		}
-		else
-		{
+		else if(i >= npages_mpentry && i < (MPENTRY_PADDR + size) / PGSIZE){
+		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
+		}
+		else if(
+			i >= npages_basemem && i < npages_extmem_used + npages_io_hole + npages_basemem){
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+			}
+		else{
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
@@ -622,7 +628,17 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+
+	void *ret = (void *)base;
+	size = ROUNDUP(size, PGSIZE);
+	if (base + size > MMIOLIM || base + size < base) {
+		panic("mmio_map_region reservation overflow\n");
+	}
+    
+	boot_map_region(kern_pgdir, base, size, pa, PTE_W|PTE_PCD|PTE_PWT);
+	// base 为static!
+	base += size;
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;
