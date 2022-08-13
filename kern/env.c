@@ -539,6 +539,5 @@ env_run(struct Env *e)
 
     env_pop_tf(&curenv->env_tf);
 
-	panic("env_run not yet implemented");
 }
 
