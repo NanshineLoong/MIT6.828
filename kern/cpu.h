@@ -1,4 +1,8 @@
-
+/*
+Kernel-private definitions for multiprocessor support
+多处理器支持的私有内核定义
+应该是 定义了 多处理器的一些操作 
+*/
 #ifndef JOS_INC_CPU_H
 #define JOS_INC_CPU_H
 

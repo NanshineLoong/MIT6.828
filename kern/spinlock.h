@@ -1,3 +1,8 @@
+
+/*
+Kernel-private definitions for spin locks, including the big kernel lock
+对 spin locks 的内核私用定义，包括big kernel lock。
+*/
 #ifndef JOS_INC_SPINLOCK_H
 #define JOS_INC_SPINLOCK_H
 

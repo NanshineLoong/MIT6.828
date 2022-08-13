@@ -1,6 +1,12 @@
 // Search for and parse the multiprocessor configuration table
 // See http://developer.intel.com/design/pentium/datashts/24201606.pdf
 
+/*
+Code to read the multiprocessor configuration
+多处理器代码读取配置
+应该是用来读取 处理器配置的一些 结构体。
+*/
+
 #include <inc/types.h>
 #include <inc/string.h>
 #include <inc/memlayout.h>

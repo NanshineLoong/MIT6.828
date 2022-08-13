@@ -70,13 +70,13 @@ void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
-{
+{  	//将 PagaInfo 转换成真正的物理地址
 	return (pp - pages) << PGSHIFT;
 }
 
 static inline struct PageInfo*
 pa2page(physaddr_t pa)
-{
+{	// 或得物理地址的数据结构
 	if (PGNUM(pa) >= npages)
 		panic("pa2page called with invalid pa");
 	return &pages[PGNUM(pa)];
@@ -84,7 +84,7 @@ pa2page(physaddr_t pa)
 
 static inline void*
 page2kva(struct PageInfo *pp)
-{
+{	//将页的数据结构转换成虚拟地址
 	return KADDR(page2pa(pp));
 }
 

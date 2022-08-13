@@ -1,5 +1,5 @@
 /* See COPYRIGHT for copyright information. */
-
+/*Assembly-language entry code for non-boot CPUs   汇编代码启动 非引导CPU  应该不会要动，这种东西一般都是固定的*/
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 

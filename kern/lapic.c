@@ -1,6 +1,9 @@
 // The local APIC manages internal (non-I/O) interrupts.
 // See Chapter 8 & Appendix C of Intel processor manual volume 3.
-
+/*
+Kernel code driving the local APIC unit in each processor
+内核代码 用来读取每个处理器地方APIC单元。不知道是用来干啥的 
+*/
 #include <inc/types.h>
 #include <inc/memlayout.h>
 #include <inc/trap.h>
