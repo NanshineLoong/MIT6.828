@@ -108,7 +108,6 @@ boot_alloc(uint32_t n)
 		panic("Out of memory!\n");
 	return result;
 
-	return NULL;
 }
 
 // Set up a two-level page table:
