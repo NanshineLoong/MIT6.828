@@ -25,6 +25,10 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
+	if (!(
+        (err & FEC_WR) && (uvpd[PDX(addr)] & PTE_P) &&
+        (uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_COW)
+	)) panic("Neither the fault is a write nor copy-on-write page.\n");
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -33,8 +37,16 @@ pgfault(struct UTrapframe *utf)
 	//   You should make three system calls.
 
 	// LAB 4: Your code here.
-
-	panic("pgfault not implemented");
+	if((r = sys_page_alloc(0, PFTEMP, PTE_U | PTE_P | PTE_W)) < 0){
+		 panic("sys_page_alloc: %e\n", r);
+	}
+	addr = ROUNDDOWN(addr, PGSIZE);
+	memcpy((void *)PFTEMP, addr, PGSIZE);
+	if ((r = sys_page_map(0, (void *)PFTEMP, 0, addr, PTE_P | PTE_U | PTE_W)) < 0)
+        panic("sys_page_map: %e\n", r);
+    if ((r = sys_page_unmap(0, (void *)PFTEMP)) < 0)
+        panic("sys_page_unmap: %e\n", r);
+	//panic("pgfault not implemented");
 }
 
 //
@@ -54,7 +66,18 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	void* vaddr=(void*)(pn*PGSIZE);
+
+	if((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)){
+		if ((r = sys_page_map(0, vaddr, envid, vaddr, PTE_P | PTE_U | PTE_COW)) < 0)
+            return r;
+        if ((r = sys_page_map(0, vaddr, 0, vaddr, PTE_P | PTE_U | PTE_COW)) < 0)
+            return r;
+	}
+	else if((r = sys_page_map(0, vaddr, envid, vaddr, PTE_P | PTE_U)) < 0) {
+		return r;
+	}
+	//panic("duppage not implemented");
 	return 0;
 }
 
@@ -78,7 +101,35 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	envid_t cenvid;
+    unsigned pn;
+    int r;
+	set_pgfault_handler(pgfault);
+	if ((cenvid = sys_exofork()) < 0){
+		panic("sys_exofork failed");
+		return cenvid;
+	}
+	if(cenvid>0){
+		for (pn=PGNUM(UTEXT); pn<PGNUM(USTACKTOP); pn++){
+            if ((uvpd[pn >> 10] & PTE_P) && (uvpt[pn] & PTE_P))
+                if ((r = duppage(cenvid, pn)) < 0)
+                    return r;
+		}
+		if ((r = sys_page_alloc(cenvid, (void *)(UXSTACKTOP-PGSIZE), PTE_U | PTE_P | PTE_W)) < 0)
+            return r;
+		extern void _pgfault_upcall(void);
+		if ((r = sys_env_set_pgfault_upcall(cenvid, _pgfault_upcall)) < 0)
+            return r;
+		if ((r = sys_env_set_status(cenvid, ENV_RUNNABLE)) < 0)
+            return r;
+        return cenvid;
+	}
+	else {
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	//panic("fork not implemented");
+	
 }
 
 // Challenge!
